@@ -1,0 +1,16 @@
+{
+    "name": "virge/enigma",
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/siosphere/virge-core"
+        }
+    ],
+    "require": {
+        "ext-mcrypt": "*",
+        "virge/core": "dev-master"
+    },
+    "autoload": {
+        "psr-4": {"Virge\\": "Virge/"}
+    }
+}
