@@ -102,4 +102,87 @@ class Enigma {
         
         return hash_hmac(Config::get('app', 'encryption_algorithm'), $string, Config::get('app', 'encryption_key'));
     }
+    
+    /**
+     * Get the MD5 hash of a file
+     * @param string $filePath
+     * @return string
+     * @throws \InvalidArgumentException
+     */
+    public static function md5File($filePath = '') {
+        if(!is_file($filePath)) {
+            throw new \InvalidArgumentException(sprintf("%s does not exists", $filePath));
+        }
+        
+        return md5_file($filePath);
+    }
+    
+    /**
+     * Encrypt inputFile into outputFile using provided encryption key
+     * @param string $inputFile
+     * @param string $outputFile
+     * @param string $key
+     * @throws \InvalidArgumentException
+     */
+    public static function encryptFile($inputFile, $outputFile, $key = false)
+    {
+        
+        if(!is_file($inputFile)) {
+            throw new \InvalidArgumentException(sprintf("%s does not exists", $inputFile));
+        }
+        
+        if(is_file($outputFile)) {
+            throw new \InvalidArgumentException(sprintf("%s already exists", $outputFile));
+        }
+        $handle = fopen($inputFile, 'r');
+        
+        $outputHandle = fopen($outputFile, 'a');
+        
+        $fileSize = filesize($inputFile);
+        $blockSize = 1024 * 1024 * 4; //4MB
+        $totalBlocks = ceil($fileSize / $blockSize);
+        $currentBlock = 0;
+        while($currentBlock < $totalBlocks) {
+            fseek($handle, $currentBlock * $blockSize);
+            $encryptedContents = self::encrypt(fread($handle, $blockSize), $key);
+            fwrite($outputHandle, $encryptedContents);
+            $currentBlock++;
+        }
+        fclose($handle);
+        fclose($outputHandle);
+    }
+    
+    /**
+     * Decrypt inputFile into outputFile using provided encryption key
+     * @param string $inputFile
+     * @param string $outputFile
+     * @param string $key
+     * @throws \InvalidArgumentException
+     */
+    public static function decryptFile($inputFile, $outputFile, $key = false)
+    {
+        if(!is_file($inputFile)) {
+            throw new \InvalidArgumentException(sprintf("%s does not exists", $inputFile));
+        }
+        
+        if(is_file($outputFile)) {
+            throw new \InvalidArgumentException(sprintf("%s already exists", $outputFile));
+        }
+        $handle = fopen($inputFile, 'r');
+        
+        $outputHandle = fopen($outputFile, 'a');
+        
+        $fileSize = filesize($inputFile);
+        $blockSize = 1024 * 1024 * 4; //4MB
+        $totalBlocks = ceil($fileSize / $blockSize);
+        $currentBlock = 0;
+        while($currentBlock < $totalBlocks) {
+            fseek($handle, $currentBlock * $blockSize);
+            $encryptedContents = self::decrypt(fread($handle, $blockSize), $key);
+            fwrite($outputHandle, $encryptedContents);
+            $currentBlock++;
+        }
+        fclose($handle);
+        fclose($outputHandle);
+    }
 }
