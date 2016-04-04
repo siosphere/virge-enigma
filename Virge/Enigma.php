@@ -15,16 +15,16 @@ class Enigma {
      * @param string $key
      * @return string
      */
-    public static function encrypt($data, $key = false){
+    public static function encrypt($data, $key = false, $encryptionAlgorithm = MCRYPT_RIJNDAEL_128){
         if(!$key){
             $key = Config::get('app', 'encryption_key');
         }
         $hash = hash('sha256', $key, true);
-        $size = mcrypt_get_block_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC); 
+        $size = mcrypt_get_block_size($encryptionAlgorithm, MCRYPT_MODE_CBC); 
         
         $input = self::pkcs5Pad($data, $size); 
 
-        $td = mcrypt_module_open(MCRYPT_RIJNDAEL_128, '', MCRYPT_MODE_CBC, ''); 
+        $td = mcrypt_module_open($encryptionAlgorithm, '', MCRYPT_MODE_CBC, ''); 
         $iv = '0000000000000000'; 
         mcrypt_generic_init($td, $hash, $iv); 
         $encrypted = mcrypt_generic($td, $input); 
@@ -40,14 +40,14 @@ class Enigma {
      * @param string $key
      * @return string
      */
-    public static function decrypt($data, $key = false){
+    public static function decrypt($data, $key = false, $encryptionAlgorithm = MCRYPT_RIJNDAEL_128){
         if(!$key){
             $key = Config::get('app', 'encryption_key');
         }
         $hash = hash('sha256', $key, true);
-        $size = mcrypt_get_block_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC); 
+        $size = mcrypt_get_block_size($encryptionAlgorithm, MCRYPT_MODE_CBC); 
         
-        $td = mcrypt_module_open(MCRYPT_RIJNDAEL_128, '', MCRYPT_MODE_CBC, ''); 
+        $td = mcrypt_module_open($encryptionAlgorithm, '', MCRYPT_MODE_CBC, ''); 
         $iv = '0000000000000000'; 
         mcrypt_generic_init($td, $hash, $iv);
         $decrypted = mdecrypt_generic($td, hex2bin($data)); 
@@ -91,16 +91,26 @@ class Enigma {
      * Quick hashing algorithm
      * @param string $string
      * @param string $salt
+     * @param string $encryptionAlgorithm
+     * @param string $key
      * @return string
      */
-    public static function hash($string = '', $salt = ''){
+    public static function hash($string = '', $salt = '', $encryptionAlgorithm = false, $key = false){
+        if(!$encryptionAlgorithm) {
+            $encryptionAlgorithm = Config::get('app', 'encryption_algorithm');
+        }
+        
+        if(!$key){
+            $key = Config::get('app', 'encryption_key');
+        }
+        
         if(strlen($string) === ''){
             $string = md5(microtime());
         }
         
         $string .= $salt;
         
-        return hash_hmac(Config::get('app', 'encryption_algorithm'), $string, Config::get('app', 'encryption_key'));
+        return hash_hmac($encryptionAlgorithm, $string, $key);
     }
     
     /**
@@ -139,12 +149,13 @@ class Enigma {
         $outputHandle = fopen($outputFile, 'a');
         
         $fileSize = filesize($inputFile);
-        $blockSize = 1024 * 1024 * 4; //4MB
+        $blockSize = 1024 * 1024; //1MB
         $totalBlocks = ceil($fileSize / $blockSize);
         $currentBlock = 0;
         while($currentBlock < $totalBlocks) {
             fseek($handle, $currentBlock * $blockSize);
-            $encryptedContents = self::encrypt(fread($handle, $blockSize), $key);
+            $contents = fread($handle, $blockSize);
+            $encryptedContents = self::encrypt($contents, $key);
             fwrite($outputHandle, $encryptedContents);
             $currentBlock++;
         }
@@ -173,7 +184,7 @@ class Enigma {
         $outputHandle = fopen($outputFile, 'a');
         
         $fileSize = filesize($inputFile);
-        $blockSize = 1024 * 1024 * 4; //4MB
+        $blockSize = 1024 * 1024 * 32; //32MB
         $totalBlocks = ceil($fileSize / $blockSize);
         $currentBlock = 0;
         while($currentBlock < $totalBlocks) {
