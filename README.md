@@ -26,7 +26,8 @@ Encryption of a file takes in an input file and an output file. The input file
 is read in blocks of 1MB, encrypted, and written out to the output file.
 
 Likewise, decryption will take an input file (the encrypted file) and an output
-file, will read the encrypted file in blocks of 32MB.
+file, will read the encrypted file in blocks based on the encryption algorithm
+used. For example, MCRYPT_RIJNDAEL_128 would be 32MB block sizes.
 
 ```
 $inputFile = "./test.txt";

@@ -134,7 +134,7 @@ class Enigma {
      * @param string $key
      * @throws \InvalidArgumentException
      */
-    public static function encryptFile($inputFile, $outputFile, $key = false)
+    public static function encryptFile($inputFile, $outputFile, $key = false, $encryptionAlgorithm = MCRYPT_RIJNDAEL_128)
     {
         
         if(!is_file($inputFile)) {
@@ -155,7 +155,7 @@ class Enigma {
         while($currentBlock < $totalBlocks) {
             fseek($handle, $currentBlock * $blockSize);
             $contents = fread($handle, $blockSize);
-            $encryptedContents = self::encrypt($contents, $key);
+            $encryptedContents = self::encrypt($contents, $key, $encryptionAlgorithm);
             fwrite($outputHandle, $encryptedContents);
             $currentBlock++;
         }
@@ -170,7 +170,7 @@ class Enigma {
      * @param string $key
      * @throws \InvalidArgumentException
      */
-    public static function decryptFile($inputFile, $outputFile, $key = false)
+    public static function decryptFile($inputFile, $outputFile, $key = false, $encryptionAlgorithm = MCRYPT_RIJNDAEL_128)
     {
         if(!is_file($inputFile)) {
             throw new \InvalidArgumentException(sprintf("%s does not exists", $inputFile));
@@ -179,17 +179,20 @@ class Enigma {
         if(is_file($outputFile)) {
             throw new \InvalidArgumentException(sprintf("%s already exists", $outputFile));
         }
-        $handle = fopen($inputFile, 'r');
         
+        $handle = fopen($inputFile, 'r');
         $outputHandle = fopen($outputFile, 'a');
         
         $fileSize = filesize($inputFile);
-        $blockSize = 1024 * 1024 * 32; //32MB
+        
+        $blockSizeModifier = strlen(self::encrypt('a', $key, $encryptionAlgorithm));
+        $blockSize = 1024 * 1024 * $blockSizeModifier;
         $totalBlocks = ceil($fileSize / $blockSize);
         $currentBlock = 0;
+        
         while($currentBlock < $totalBlocks) {
             fseek($handle, $currentBlock * $blockSize);
-            $encryptedContents = self::decrypt(fread($handle, $blockSize), $key);
+            $encryptedContents = self::decrypt(fread($handle, $blockSize), $key, $encryptionAlgorithm);
             fwrite($outputHandle, $encryptedContents);
             $currentBlock++;
         }
