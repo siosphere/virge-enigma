@@ -154,8 +154,8 @@ class Enigma {
         $currentBlock = 0;
         while($currentBlock < $totalBlocks) {
             fseek($handle, $currentBlock * $blockSize);
-            $contents = fread($handle, $blockSize);
-            $encryptedContents = self::encrypt($contents, $key, $encryptionAlgorithm);
+            $contents = bin2hex(fread($handle, $blockSize));
+            $encryptedContents = self::encrypt($contents, $key, $encryptionAlgorithm) . "\n";
             fwrite($outputHandle, $encryptedContents);
             $currentBlock++;
         }
@@ -180,23 +180,20 @@ class Enigma {
             throw new \InvalidArgumentException(sprintf("%s already exists", $outputFile));
         }
         
-        $handle = fopen($inputFile, 'r');
+        $file = new \SplFileObject($inputFile);
+        
         $outputHandle = fopen($outputFile, 'a');
         
-        $fileSize = filesize($inputFile);
-        
-        $blockSizeModifier = strlen(self::encrypt('a', $key, $encryptionAlgorithm));
-        $blockSize = 1024 * 1024 * $blockSizeModifier;
-        $totalBlocks = ceil($fileSize / $blockSize);
-        $currentBlock = 0;
-        
-        while($currentBlock < $totalBlocks) {
-            fseek($handle, $currentBlock * $blockSize);
-            $encryptedContents = self::decrypt(fread($handle, $blockSize), $key, $encryptionAlgorithm);
-            fwrite($outputHandle, $encryptedContents);
-            $currentBlock++;
+        while (!$file->eof()) {
+            $line = trim($file->current(), "\n");
+            if(strlen($line) > 0 ){
+                $decryptedContents = hex2bin(self::decrypt($line, $key, $encryptionAlgorithm));
+                fwrite($outputHandle, $decryptedContents);
+            }
+            $file->next();
+            
         }
-        fclose($handle);
+        $file = null;
         fclose($outputHandle);
     }
 }
