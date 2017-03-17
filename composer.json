@@ -2,7 +2,7 @@
     "name": "virge/enigma",
     "require": {
         "ext-mcrypt": "*",
-        "virge/core": "dev-master"
+        "virge/core": "~1.0"
     },
     "autoload": {
         "psr-4": {"Virge\\": "Virge/"}
